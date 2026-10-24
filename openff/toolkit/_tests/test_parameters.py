@@ -2430,6 +2430,27 @@ class TestVirtualSiteHandler:
 
         assert handler._index_of_parameter(query_parameter, query_key) == expected_index
 
+    def test_duplicate_parameter_error_message(self):
+        """Test that the error message lists the attributes that identify a virtual site.
+
+        See https://github.com/openforcefield/openff-toolkit/issues/2157
+        """
+        handler = VirtualSiteHandler(version="0.3")
+
+        handler.add_parameter(parameter=VirtualSiteMocking.bond_charge_parameter("[*:1][*:2]", name="LP"))
+
+        # the same SMIRKS pattern with a different name is not a duplicate
+        handler.add_parameter(parameter=VirtualSiteMocking.bond_charge_parameter("[*:1][*:2]", name="EP"))
+
+        with pytest.raises(
+            DuplicateParameterError,
+            match=(
+                r"A parameter with type BondCharge, SMIRKS pattern \[\*:1\]\[\*:2\], "
+                + r"and name LP already exists\."
+            ),
+        ):
+            handler.add_parameter(parameter=VirtualSiteMocking.bond_charge_parameter("[*:1][*:2]", name="LP"))
+
     def test_invalid_num_charge_increments(self):
         with pytest.raises(
             SMIRNOFFSpecError,
@@ -2472,6 +2493,26 @@ class TestLibraryChargeHandler:
     def test_create_library_charge_handler(self):
         """Test creation of an empty LibraryChargeHandler"""
         LibraryChargeHandler(skip_version_check=True)
+
+    def test_duplicate_parameter_error_message(self):
+        """Test that the error message of handlers identifying parameters by SMIRKS alone only
+        mentions the SMIRKS pattern, even if their parameters have a name"""
+        handler = LibraryChargeHandler(skip_version_check=True)
+
+        parameter_kwargs = {
+            "smirks": "[#6:1]-[#7:2]",
+            "charge1": 0.1 * unit.elementary_charge,
+            "charge2": -0.1 * unit.elementary_charge,
+            "name": "foo",
+        }
+
+        handler.add_parameter(parameter_kwargs)
+
+        with pytest.raises(
+            DuplicateParameterError,
+            match=r"A parameter SMIRKS pattern \[#6:1\]-\[#7:2\] already exists\.",
+        ):
+            handler.add_parameter({**parameter_kwargs, "name": "bar"})
 
     def test_library_charge_type_wrong_num_charges(self):
         """Ensure that an error is raised if a LibraryChargeType is initialized with a different number of

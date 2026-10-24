@@ -27,6 +27,7 @@ Releases follow the `major.minor.micro` scheme recommended by [PEP440](https://w
 ### Improved documentation and warnings
 
 - [PR #2248](https://github.com/openforcefield/openff-toolkit/pull/2248): Add initial AI policy.
+- [PR #2251](https://github.com/openforcefield/openff-toolkit/pull/2251): The `DuplicateParameterError` raised by `VirtualSiteHandler.add_parameter` now reports the type, SMIRKS pattern, and name of the duplicated parameter, since virtual site parameters are identified by all three. Resolves [Issue #2157](https://github.com/openforcefield/openff-toolkit/issues/2157).
 
 
 ## 0.19.0

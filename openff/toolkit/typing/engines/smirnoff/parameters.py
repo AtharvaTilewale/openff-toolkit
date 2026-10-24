@@ -1934,6 +1934,14 @@ class ParameterHandler(_ParameterAttributeHandler):
 
         return None
 
+    def _duplicate_parameter_message(self, parameter: ParameterType) -> str:
+        """Describe a parameter that duplicates a parameter already in this handler.
+
+        Handlers that override ``_index_of_parameter`` should override this method so
+        that the message describes the same attributes that identify a duplicate.
+        """
+        return f"A parameter SMIRKS pattern {parameter.smirks} already exists."
+
     # TODO: Can we ensure SMIRKS and other parameters remain valid after manipulation?
     def add_parameter(
         self,
@@ -2012,7 +2020,7 @@ class ParameterHandler(_ParameterAttributeHandler):
 
         if not allow_duplicate_smirks:
             if self._index_of_parameter(new_parameter) is not None:
-                msg = f"A parameter SMIRKS pattern {new_parameter.smirks} already exists."
+                msg = self._duplicate_parameter_message(new_parameter)
                 raise DuplicateParameterError(msg)
 
         before_index, after_index = None, None
@@ -3667,6 +3675,14 @@ class VirtualSiteHandler(_NonbondedHandler):
             return i
 
         return None
+
+    def _duplicate_parameter_message(self, parameter: ParameterType) -> str:
+        return (
+            f"A parameter with type {parameter.type}, SMIRKS pattern {parameter.smirks}, and "
+            f"name {parameter.name} already exists. Virtual site parameters are identified by "
+            "the combination of their type, SMIRKS pattern, and name, so parameters sharing a "
+            "SMIRKS pattern must differ in their type or name."
+        )
 
     def _find_matches_by_parent(self, entity: Topology) -> dict[int, list]:
         from collections import defaultdict

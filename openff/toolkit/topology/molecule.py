@@ -70,6 +70,7 @@ from openff.toolkit.utils.exceptions import (
     MissingConformersError,
     MissingPartialChargesError,
     MoleculeParseError,
+    MultipleComponentsInMoleculeWarning,
     MultipleMoleculesInPDBError,
     RemapIndexError,
     SmilesParsingError,
@@ -4031,19 +4032,26 @@ class FrozenMolecule(Serializable):
         with open(substructure_file_path) as subfile:
             substructure_dictionary = json.load(subfile)
 
-        offmol = toolkit_registry.call(
-            "_polymer_openmm_topology_to_offmol",
-            cls,
-            pdb.topology,
-            substructure_dictionary,
-        )
+        # These calls go through `Molecule.from_rdkit`, which warns if the molecule it is
+        # given has multiple components. That warning is confusing here, since the user did
+        # not call `from_rdkit` and this method raises `MultipleMoleculesInPDBError` below.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", MultipleComponentsInMoleculeWarning)
 
-        coords = Quantity(
-            np.array([[*vec3.value_in_unit(openmm_unit.angstrom)] for vec3 in pdb.getPositions()]),
-            unit.angstrom,
-        )
-        offmol.add_conformer(coords)
-        offmol = toolkit_registry.call("_assign_aromaticity_and_stereo_from_3d", offmol)
+            offmol = toolkit_registry.call(
+                "_polymer_openmm_topology_to_offmol",
+                cls,
+                pdb.topology,
+                substructure_dictionary,
+            )
+
+            coords = Quantity(
+                np.array([[*vec3.value_in_unit(openmm_unit.angstrom)] for vec3 in pdb.getPositions()]),
+                unit.angstrom,
+            )
+            offmol.add_conformer(coords)
+            offmol = toolkit_registry.call("_assign_aromaticity_and_stereo_from_3d", offmol)
+
         for i, atom in enumerate(pdb.topology.atoms()):
             offmol.atoms[i].name = atom.name
             offmol.atoms[i].metadata["residue_name"] = atom.residue.name
@@ -4055,9 +4063,10 @@ class FrozenMolecule(Serializable):
         if offmol._has_multiple_molecules():
             raise MultipleMoleculesInPDBError(
                 "This PDB has multiple molecules. The OpenFF Toolkit requires "
-                + "that only one molecule is present in a PDB. Try splitting "
-                + "each molecule into its own PDB with another tool, and "
-                + "load any small molecules with Molecule.from_pdb_and_smiles."
+                + "that only one molecule is present in a PDB. Use "
+                + "Topology.from_pdb to load PDB files containing multiple "
+                + "molecules, passing any non-polymer molecules to its "
+                + "`unique_molecules` argument."
             )
 
         offmol.name = name

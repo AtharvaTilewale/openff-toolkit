@@ -70,6 +70,7 @@ from openff.toolkit.utils.exceptions import (
     MissingCMILESError,
     MissingConformersError,
     MissingPartialChargesError,
+    MultipleComponentsInMoleculeWarning,
     MultipleMoleculesInPDBError,
     NotBondedError,
     RemapIndexError,
@@ -3817,12 +3818,23 @@ class TestMoleculeFromPDB:
             match=(
                 r"This PDB has multiple molecules\. The OpenFF Toolkit "
                 + r"requires that only one molecule is present in a "
-                + r"PDB\. Try splitting each molecule into its own PDB "
-                + r"with another tool, and load any small molecules "
-                + r"with Molecule\.from_pdb_and_smiles\."
+                + r"PDB\. Use Topology\.from_pdb to load PDB files "
+                + r"containing multiple molecules, passing any "
+                + r"non-polymer molecules to its `unique_molecules` "
+                + r"argument\."
             ),
         ):
             Molecule.from_polymer_pdb(get_data_file_path("proteins/TwoMol_SER_CYS.pdb"))
+
+    def test_molecule_from_pdb_two_polymers_no_from_rdkit_warning(self):
+        """Test that a PDB with multiple molecules does not warn about `from_rdkit`"""
+        with warnings.catch_warnings(record=True) as records:
+            warnings.simplefilter("always")
+
+            with pytest.raises(MultipleMoleculesInPDBError):
+                Molecule.from_polymer_pdb(get_data_file_path("proteins/TwoMol_SER_CYS.pdb"))
+
+        assert not [record for record in records if record.category is MultipleComponentsInMoleculeWarning]
 
     def test_unproc_pdb_4w51_errors(self):
         """Test that a file fresh from the PDB gives all the right hints when it fails to load"""

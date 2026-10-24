@@ -27,6 +27,7 @@ Releases follow the `major.minor.micro` scheme recommended by [PEP440](https://w
 ### Improved documentation and warnings
 
 - [PR #2248](https://github.com/openforcefield/openff-toolkit/pull/2248): Add initial AI policy.
+- [PR #2250](https://github.com/openforcefield/openff-toolkit/pull/2250): `Molecule.from_polymer_pdb` no longer emits a `MultipleComponentsInMoleculeWarning` mentioning `Molecule.from_rdkit` when the PDB file contains multiple molecules, and the `MultipleMoleculesInPDBError` it raises now recommends `Topology.from_pdb` instead of the deprecated `Molecule.from_pdb_and_smiles`. Resolves [Issue #2010](https://github.com/openforcefield/openff-toolkit/issues/2010).
 
 
 ## 0.19.0
